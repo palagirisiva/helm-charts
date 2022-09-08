@@ -6,7 +6,19 @@ replicas: 1
 #
 # Note that when overriding logstash.yml, `http.host: 0.0.0.0` should always be included
 # to make default probes work.
-logstashConfig: {}
+logstashConfig:
+  logstash.yml: |
+    http.host: 0.0.0.0
+    pipeline.ecs_compatibility: disabled
+  pipelines.yml: |
+    - pipeline.id: logstash
+      path.config: "/usr/share/logstash/pipeline/logstash.conf"
+    - pipeline.id: devopsdashboard
+      path.config: "/usr/share/logstash/pipeline/devopsdashboard.conf"
+      pipeline.workers: 3
+  log4j2.properties: |
+    logger.logstashpipeline.name = logstash.inputs.beats
+    logger.logstashpipeline.level = error
 #  logstash.yml: |
 #    key:
 #      nestedkey: value
@@ -15,7 +27,32 @@ logstashConfig: {}
 
 # Allows you to add any pipeline files in /usr/share/logstash/pipeline/
 ### ***warn*** there is a hardcoded logstash.conf in the image, override it first
-logstashPipeline: {}
+logstashPipeline:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+      }
+    }
+    output {
+      elasticsearch { hosts => [ "elasticsearch-master:9200" ] } }
+
+  devopsdashboard.conf: |
+    input {
+      tcp {
+        port => 9500
+        codec => json
+      }
+    }
+    filter {
+        }
+    }
+    output {
+      elasticsearch {
+        index => "devopsdashboard-%{+YYYY.MM.dd}"
+        hosts => [ "elasticsearch-master:9200" ]
+      }
+    }
 #  logstash.conf: |
 #    input {
 #      exec {
@@ -71,7 +108,7 @@ hostAliases: []
 #  - "bar.local"
 
 image: "docker.elastic.co/logstash/logstash"
-imageTag: "8.4.1"
+imageTag: "8.1.0"
 imagePullPolicy: "IfNotPresent"
 imagePullSecrets: []
 
@@ -84,7 +121,7 @@ logstashJavaOpts: "-Xmx1g -Xms1g"
 
 resources:
   requests:
-    cpu: "100m"
+    cpu: "1000m"
     memory: "1536Mi"
   limits:
     cpu: "1000m"
@@ -179,7 +216,8 @@ httpPort: 9600
 
 # Custom ports to add to logstash
 extraPorts:
-  []
+  - name: tcpport
+    containerPort: 9500
   # - name: beats
   #   containerPort: 5001
 
