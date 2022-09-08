@@ -76,7 +76,7 @@ hostAliases: []
 #  - "bar.local"
 
 image: "docker.elastic.co/elasticsearch/elasticsearch"
-imageTag: "8.4.1"
+imageTag: "8.1.0"
 imagePullPolicy: "IfNotPresent"
 
 podAnnotations: {}
@@ -192,10 +192,18 @@ httpPort: 9200
 transportPort: 9300
 
 service:
+  service:
   enabled: true
   labels: {}
   labelsHeadless: {}
-  type: ClusterIP
+  type: NodePort
+  nodePort: "30234"
+  annotations: {}
+  httpPortName: http
+  transportPortName: transport
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: ""
   # Consider that all endpoints are considered "ready" even if the Pods themselves are not
   # https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/#ServiceSpec
   publishNotReadyAddresses: false
